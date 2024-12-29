@@ -1,12 +1,15 @@
-FROM golang:1.22
-
-WORKDIR /app
-
+FROM golang:1.22 AS builder
+WORKDIR /build
 COPY go.mod go.sum ./
 RUN go mod download && go mod verify
-
 COPY . .
+RUN CGO_ENABLED=0 go build -v -o ./proxy
 
-RUN go build -v -o /usr/local/bin/app ./...
-
-CMD [ "app" ]
+FROM scratch
+WORKDIR /app
+COPY --from=builder /build/proxy ./proxy
+EXPOSE 8080
+ENV STREAM_URL "http://www.example.com/stream"
+ENV STREAM_USER ""
+ENV STREAM_PASSWORD ""
+CMD ["./proxy"]
